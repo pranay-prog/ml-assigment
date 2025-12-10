@@ -1,0 +1,1315 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Practice Lab: Linear Regression\n",
+    "\n",
+    "Welcome to your first practice lab! In this lab, you will implement linear regression with one variable to predict profits for a restaurant franchise.\n",
+    "\n",
+    "\n",
+    "# Outline\n",
+    "- [ 1 - Packages ](#1)\n",
+    "- [ 2 - Linear regression with one variable ](#2)\n",
+    "  - [ 2.1 Problem Statement](#2.1)\n",
+    "  - [ 2.2  Dataset](#2.2)\n",
+    "  - [ 2.3 Refresher on linear regression](#2.3)\n",
+    "  - [ 2.4  Compute Cost](#2.4)\n",
+    "    - [ Exercise 1](#ex01)\n",
+    "  - [ 2.5 Gradient descent ](#2.5)\n",
+    "    - [ Exercise 2](#ex02)\n",
+    "  - [ 2.6 Learning parameters using batch gradient descent ](#2.6)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "_**NOTE:** To prevent errors from the autograder, you are not allowed to edit or delete non-graded cells in this notebook . Please also refrain from adding any new cells. \n",
+    "**Once you have passed this assignment** and want to experiment with any of the non-graded code, you may follow the instructions at the bottom of this notebook._"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"1\"></a>\n",
+    "## 1 - Packages \n",
+    "\n",
+    "First, let's run the cell below to import all the packages that you will need during this assignment.\n",
+    "- [numpy](https://www.numpy.org) is the fundamental package for working with matrices in Python.\n",
+    "- [matplotlib](https://matplotlib.org) is a famous library to plot graphs in Python.\n",
+    "- ``utils.py`` contains helper functions for this assignment. You do not need to modify code in this file.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "from utils import *\n",
+    "import copy\n",
+    "import math\n",
+    "%matplotlib inline"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'load_data' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-4-d09df101c41b>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[0;32m----> 1\u001b[0;31m \u001b[0mx_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my_train\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mload_data\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m: name 'load_data' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "x_train, y_train = load_data()\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2 -  Problem Statement\n",
+    "\n",
+    "Suppose you are the CEO of a restaurant franchise and are considering different cities for opening a new outlet.\n",
+    "- You would like to expand your business to cities that may give your restaurant higher profits.\n",
+    "- The chain already has restaurants in various cities and you have data for profits and populations from the cities.\n",
+    "- You also have data on cities that are candidates for a new restaurant. \n",
+    "    - For these cities, you have the city population.\n",
+    "    \n",
+    "Can you use the data to help you identify which cities may potentially give your business higher profits?\n",
+    "\n",
+    "## 3 - Dataset\n",
+    "\n",
+    "You will start by loading the dataset for this task. \n",
+    "- The `load_data()` function shown below loads the data into variables `x_train` and `y_train`\n",
+    "  - `x_train` is the population of a city\n",
+    "  - `y_train` is the profit of a restaurant in that city. A negative value for profit indicates a loss.   \n",
+    "  - Both `X_train` and `y_train` are numpy arrays."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'load_data' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-6-4a1069ac9bcc>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m\u001b[0m\n\u001b[1;32m      1\u001b[0m \u001b[0;31m# load the dataset\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 2\u001b[0;31m \u001b[0mx_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my_train\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mload_data\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0m: name 'load_data' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "# load the dataset\n",
+    "x_train, y_train = load_data()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "def load_data():\n",
+    "    # population (x) and profit (y) data from ex1\n",
+    "    x_train = np.array([6.1101, 5.5277, 8.5186, 7.0032, 5.8598,\n",
+    "                        8.3829, 7.4764, 8.5781, 6.4862, 5.0546,\n",
+    "                        5.7107, 14.164, 5.734, 8.4084, 5.6407,\n",
+    "                        5.3794, 6.3654, 5.1301, 6.0981, 5.8014])\n",
+    "\n",
+    "    y_train = np.array([17.592, 9.1302, 13.662, 11.854, 6.8233,\n",
+    "                        11.686, 4.3483, 12.0, 6.5987, 3.8166,\n",
+    "                        7.5435, 22.636, 7.2242, 14.19, 7.5425,\n",
+    "                        5.9966, 12.134, 6.6799, 14.692, 6.9181])\n",
+    "\n",
+    "    return x_train, y_train\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "x_train, y_train = load_data()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### View the variables\n",
+    "Before starting on any task, it is useful to get more familiar with your dataset.  \n",
+    "- A good place to start is to just print out each variable and see what it contains.\n",
+    "\n",
+    "The code below prints the variable `x_train` and the type of the variable."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 29,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Type of x_train: <class 'numpy.ndarray'>\n",
+      "First five elements of x_train are:\n",
+      " [6.1101 5.5277 8.5186 7.0032 5.8598]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# print x_train\n",
+    "print(\"Type of x_train:\",type(x_train))\n",
+    "print(\"First five elements of x_train are:\\n\", x_train[:5]) "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "`x_train` is a numpy array that contains decimal values that are all greater than zero.\n",
+    "- These values represent the city population times 10,000\n",
+    "- For example, 6.1101 means that the population for that city is 61,101\n",
+    "  \n",
+    "Now, let's print `y_train`"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Type of y_train: <class 'numpy.ndarray'>\n",
+      "First five elements of y_train are:\n",
+      " [17.592   9.1302 13.662  11.854   6.8233]\n"
+     ]
+    }
+   ],
+   "source": [
+    "# print y_train\n",
+    "print(\"Type of y_train:\",type(y_train))\n",
+    "print(\"First five elements of y_train are:\\n\", y_train[:5])  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Similarly, `y_train` is a numpy array that has decimal values, some negative, some positive.\n",
+    "- These represent your restaurant's average monthly profits in each city, in units of \\$10,000.\n",
+    "  - For example, 17.592 represents \\$175,920 in average monthly profits for that city.\n",
+    "  - -2.6807 represents -\\$26,807 in average monthly loss for that city."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Check the dimensions of your variables\n",
+    "\n",
+    "Another useful way to get familiar with your data is to view its dimensions.\n",
+    "\n",
+    "Please print the shape of `x_train` and `y_train` and see how many training examples you have in your dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "The shape of x_train is: (20,)\n",
+      "The shape of y_train is:  (20,)\n",
+      "Number of training examples (m): 20\n"
+     ]
+    }
+   ],
+   "source": [
+    "print ('The shape of x_train is:', x_train.shape)\n",
+    "print ('The shape of y_train is: ', y_train.shape)\n",
+    "print ('Number of training examples (m):', len(x_train))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The city population array has 97 data points, and the monthly average profits also has 97 data points. These are NumPy 1D arrays."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Visualize your data\n",
+    "\n",
+    "It is often useful to understand the data by visualizing it. \n",
+    "- For this dataset, you can use a scatter plot to visualize the data, since it has only two properties to plot (profit and population). \n",
+    "- Many other problems that you will encounter in real life have more than two properties (for example, population, average household income, monthly profits, monthly sales).When you have more than two properties, you can still use a scatter plot to see the relationship between each pair of properties.\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "image/png": "iVBORw0KGgoAAAANSUhEUgAAAYgAAAEWCAYAAAB8LwAVAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAADh0RVh0U29mdHdhcmUAbWF0cGxvdGxpYiB2ZXJzaW9uMy4yLjEsIGh0dHA6Ly9tYXRwbG90bGliLm9yZy+j8jraAAAgAElEQVR4nO3deZhcVZ3/8feHTQGBZgmQsEUEF2AkQn4I44aiDMQFxxkFZBRxYdygaXSEUUcanRlxdIyJOPBEQZZRxA3lpxFhQEUcWRJ2CJqIUUICaZYAAsqS7/xxTtE3lVtLd1fV7U5/Xs9TT1Xd9XsrnfrWWe45igjMzMzqrVd1AGZmNj45QZiZWSknCDMzK+UEYWZmpZwgzMyslBOEmZmVcoKwrpD0MkmLJf1J0psl/UTS0VXHNZ5ICkm7jXLfoyRd2umYqiTpNkkHVh2HDZPvg7AaSUuB7YCngUeB+cBxEfGnURzrcuDiiJhTsu5dwHsj4uVjCrhD8pfSFcBjQADLgdMi4utdPm8Au0fEkhbbTQd+D2wYEU91M6bxQtIgsFtE/EPVsUxmLkFYvTdGxHOAfYD/B3yyfgNJG7RxnF2A2zocWzctz9e9OXAS8FVJe1Qc04TW5t+JjWNOEFYqIu4GfgLsBc9Uh3xI0mJgcV72PklLJD0g6WJJ0/Ly3wG7Av8/VzE9S9LPJb1X0ouAM4ED8rpVeZ9Zkm6X9IikuyV9tD6mfJxVkvYqLJsi6XFJ20raRtKP8jYPSPqlpBH9jUfyA+BBYI98zi9JWp4fX5L0rHzuAyUtk/RxSfdJWirpqEJsP5f03sL7d0m6quy8kl4v6QZJD0u6K/+CrrkyP6/Kn9kB9ceS9NeSrpP0UH7+67o4PiPpV/nzvVTSNg3iaHVNz5L0BUl/lHSvpDMlbVy370mS7gFKS2D572ZRjuV2Sfvk5UslvVbSIcDHgcPz9d4k6a2SFtYd5yOSflB2DusMJwgrJWknYBZwQ2Hxm4GXkr44XwN8FngbMBX4A/AtgIh4HvBHcmkkIv5SO0BELALeD/w6r+vLq84C/jEiNiMlpSvqY8rH+T5wZGHx24BfRMRK4CPAMmAKqars46Qqo5Fc93qS/hboA24BPgHsD8wA9gb2Y81S1fbANsAOwNHAPEkvGMk5s0eBd+bzvh74gKQ353WvzM99+TP7dV3MWwE/BuYCWwNfBH4saevCZm8HjgG2BTYC1krAbV7T54Dnkz6P3fI2n6rbdytSCfLY+gNLeiswmK91c+BNwP3FbSLiEuDfgQvz9e4NXAw8N//AqPkH4Pwm12Fj5ARh9X6Qf9VfBfyC9B+15rMR8UBEPA4cBZwdEdfnL+5/JpUKpo/yvE+SEs/mEfFgRFzfYLtvsmaCeHteVjvGVGCXiHgyIn4Z7TeyTcvXfR9wCvCOiPgN6To/HRErI2IIOBV4R92+/xIRf4mIX5C+qN/W5jmfERE/j4hbImJ1RNwMXAC8qs3dXw8sjojzI+KpiLgAuAN4Y2Gbr0fEb/O/3bdJX/DNrHVNkgS8DxjIfwePkP4+jijstxo4Je/7eMlx3wv8R0Rcl0trSyLiD60uMP+NXUhKCkjaE5gO/KjVvjZ6ThBW780R0RcRu0TEB+v+k99VeD2NVGoAIDdk30/6RTkaf0cqsfxB0i8kHdBguyuAjSW9VNIupC+6i/K6zwNLgEsl3Snp5BGcf3m+7q0iYkZEfCsvX+M68+tphfcPRsSjTda3JV/PzyQNSXqIVMoqrQYqUR9jLY7iv8U9hdePAc9pcrxG1zQF2ARYmKvxVgGX5OU1QxHx5ybH3gn4XZP1zZwLvD0nqncA3y6WTq3znCBsJIq/xpeTqhEAkLQpqXrj7hEeJy1IvygPI1WB/ID0K3ftHSNW53VHkkoPP8q/ZImIRyLiIxGxK+nX84mSDmrnwppY4zqBnfOymi3ztZetf5T0hVqzfZPzfJNUjbJTRGxBaqdRXteqFFQfYy2Odv4tyjS6pvuAx4E9czLti4gtcuN+TatY7wKe10YMZX8jVwNPAK8g/du7eqnLnCBstL4JHCNpRm60/XfgmohY2sa+9wI7StoIQNJGSv36t4iIJ4GHSV1tm537cFL1T616CUlvkLRb/oVZO0az47TjAuCTuTF8G1J9+3/XbXNqvoZXAG8AvpOX3wi8RdImSvc7vKfJeTYDHoiIP0vaj/QFWDNEqrrZtcG+84HnS3q7pA0kHQ7swdiqX9a6ppycvwrMlrQtgKQdJP3NCI77NeCjkvZVslsuCda7F5iutTsZnAecDjwVEaUN/tY5ThA2KhFxOfAvwPeAFaRfhUc03WnYFaQusPdIui8vewewVNLDpOqVhv3fI+Ia0q/zaaSeVjW7A/8D/An4NfBfEfFzAKUb9T7eZnxF/wosAG4mNVpfn5fV3EPq8bQc+Abw/oi4I6+bTfrFey+peuQbTc7zQeDTkh4hJaFnSlAR8Rjwb8CvctXO/sUdI+J+0pf4R0jVfB8D3hAR9zE6za7pJFI13tX53+p/gLYb5SPiO/lavgk8QiotblWyaS3J3i+p2B51PqkTg0sPPeAb5cxGSekGu/+OiB2rjqVTxvs15S61K4F9ImJx1fGs61yCMLOJ5APAdU4OveE7Hc1sQlAaCkak+3GsB1zFZGZmpVzFZGZmpdapKqZtttkmpk+fXnUYZmYTxsKFC++LiCll69apBDF9+nQWLFhQdRhmZhOGpIZDnbiKyczMSjlBmJlZKScIMzMr5QRhZmalnCDMzCaq+vvYOnxfmxOEmdlENDgIAwPDSSEivR8c7NgpnCDMzCaaCFi1CubMGU4SAwPp/apVHStJdO0+iDyn8XmkSVJWA/MiYo6kz5Mmc3mCNLPUMRGxqmT/paThgJ8mjf0+s1uxmplNKBLMnp1ez5mTHgD9/Wm51HjfkZymW2MxSZoKTI2I6yVtBiwkDbK1I3BFRDwl6XMAEXFSyf5LgZkjGdN+5syZ4RvlzGzSiID1ChVBq1ePODlIWtjoB3jXqpgiYkVt4vk8JeQiYIeIuDQinsqbXU1KGGZmNhK1aqWiYptEB/SkDULSdOAlwDV1q97NmjOCFQVp8vmFko5tcuxjJS2QtGBoaKgT4ZqZjW/FNof+/lRy6O9fs02iA7o+FpOk55CmpTwhIh4uLP8E8BSNp2F8WUQsz3PfXibpjoi4sn6jiJgHzINUxdTxCzAzG28k6Otbs82h1ibR1zf+2yAAJG1Imjj9pxHxxcLyo0nzDh+U59ttdZxB4E8R8YVm27kNwswmlYg1k0H9+zZU0gYhScBZwKK65HAIaeLzNzVKDpI2zQ3bSNoUOBi4tVuxmplNSPXJoEMlh5putkG8DHgH8BpJN+bHLOB0YDNStdGNks4EkDRN0vy873bAVZJuAq4FfhwRl3QxVjMzq9O1NoiIuIo0f2y9+SXLiIjlwKz8+k5g727FZmZmrflOajMzK+UEYWZmpZwgzMyslBOEmZmVcoIwM7NSThBmZlbKCcLMzEo5QZiZWSknCDMzK+UEYWZmpZwgzMyslBOEmZmVcoIwM7NSThBmZlbKCcLMzEo5QZiZWSknCDMzK9XNOal3kvQzSYsk3SapPy/fStJlkhbn5y0b7H+IpN9IWiLp5G7FaWZm5bpZgngK+EhEvAjYH/iQpD2Ak4HLI2J34PL8fg2S1ge+AhwK7AEcmfc1M7Me6VqCiIgVEXF9fv0IsAjYATgMODdvdi7w5pLd9wOWRMSdEfEE8K28n5mZ9UhP2iAkTQdeAlwDbBcRKyAlEWDbkl12AO4qvF+Wl5Ud+1hJCyQtGBoa6mTYZmaTWtcThKTnAN8DToiIh9vdrWRZlG0YEfMiYmZEzJwyZcpowzQzszpdTRCSNiQlh29ExPfz4nslTc3rpwIrS3ZdBuxUeL8jsLybsZqZ2Zq62YtJwFnAooj4YmHVxcDR+fXRwA9Ldr8O2F3ScyVtBByR9zMzsx7pZgniZcA7gNdIujE/ZgGnAa+TtBh4XX6PpGmS5gNExFPAh4Gfkhq3vx0Rt3UxVjMzq7NBtw4cEVdR3pYAcFDJ9suBWYX384H53YnOzMxa8Z3UZmZWygnCzMxKOUGYmVkpJwgzMyvlBGFmZqWcIMzMrJQThJmZlXKCMDOzUk4QZmZWygnCzMxKOUGYmVkpJwgzMyvlBGFmZqWcIMzMrJQThJmZlXKCGE8imr83M+shJ4jxYnAQBgaGk0JEej84WGVUZjaJdXNO6rMlrZR0a2HZhYXpR5dKurHBvksl3ZK3W9CtGMeNCFi1CubMGU4SAwPp/apVLkmYWSW6NuUocA5wOnBebUFEHF57Lek/gYea7P/qiLiva9GNJxLMnp1ez5mTHgD9/Wm5Gs3cambWPV0rQUTElcADZeskCXgbcEG3zj/hFJNEjZODmVWoqjaIVwD3RsTiBusDuFTSQknHNjuQpGMlLZC0YGhoqOOB9kytWqmo2CZhZtZjVSWII2leenhZROwDHAp8SNIrG20YEfMiYmZEzJwyZUqn4+yNYptDfz+sXp2ei20SZmY91s02iFKSNgDeAuzbaJuIWJ6fV0q6CNgPuLI3EVZAgr6+NdscatVNfX2uZjKzSvQ8QQCvBe6IiGVlKyVtCqwXEY/k1wcDn+5lgJUYHEwlhVoyqCUJJwczq0g3u7leAPwaeIGkZZLek1cdQV31kqRpkubnt9sBV0m6CbgW+HFEXNKtOMeV+mTg5GBmFWpZgsg9jvYDdiA1Hi8Hro1oXjEeEUc2WP6ukmXLgVn59Z3A3q3iMjOz7mqaICQdDPwXsBi4Oy/eEdhN0gcj4tIux2dmZhVpVYKYA7w2IpYWF0p6LjAfeFGX4jIzs4q1aoPYAChrTL4b2LDz4ZiZ2XjRqgRxNnCdpG8Bd+VlO5Eams/qZmBmZlatpgkiIj4r6YfAm4ADAJFKFEdFxO09iM/MzCrSshdTTgROBmZmk0zTNghJW0g6TdIdku7Pj0V5WV+vgjQzs95r1Uj9beBB4MCI2DoitgZeDawCvtPt4MzMrDqtEsT0iPhcRNxTWxAR90TEacDO3Q3NzMyq1CpB/EHSxyRtV1sgaTtJJzHcq8nMzNZBrRLE4cDWwC8kPSjpQeDnwFakCX/MzGwd1aqb64PASflhZmaTSDuD9b0QOIw1B+u7OCIWdTk2MzOrUKturicB3yLdIHctcF1+fYGkk7sfnpmZVaVVCeI9wJ4R8WRxoaQvArcBp3UrMDMzq1arRurVwLSS5VPzOjMzW0e1KkGcAFwuaTHD3Vp3BnYDPtzNwMzMrFqtejFdIun5DM8oVxus77qIeLrZvpLOBt4ArIyIvfKyQeB9wFDe7OMRMb9k30NIc1GsD3wt35hnZmY91M5gfauBq0dx7HOA04Hz6pbPjogvNNpJ0vrAV4DXkZORpIs9eqyZWW+1aoMolQfsWySpYTVTRFwJPDCKw+8HLImIOyPiCVIvqsNGE6eZmY3eqBJERLwIeDnw+1Hs/mFJN0s6W9KWJet3YM1hPJblZaUkHStpgaQFQ0NDjTabGCKavzcz66G2E4SkrYpf6BFxf0T8eITnOwN4HjADWAH8Z9mpSpY1/KaMiHkRMTMiZk6ZMmWE4Ywjg4MwMDCcFCLS+8HBKqMys0ms1Y1yO0v6lqQh4BpSe8DKvGz6SE8WEfdGxNO5XeOrpOqkestI05rW7Ei6e3vdFQGrVsGcOcNJYmAgvV+1yiUJM6tEq0bqC4EvkaYYfRqeaUR+K6ltYP+RnEzS1IhYkd/+LXBryWbXAbtLei5wN2n+67eP5DwTjgSzZ6fXc+akB0B/f1quskKVmVl3KZr8OpW0OCJ2H+m6vP4C4EBgG+Be4JT8fgapymgp8I8RsULSNFJ31ll531mkxLQ+cHZE/Fs7FzNz5sxYsGBBO5uOTxGwXqFQt3q1k4OZdZWkhRExs2xdqxLEQkn/BZzLcMPxTsDRwA3NdoyII0sWn9Vg2+XArML7+cBa90es02rVSkUDAy5BtBKx5udT/97MRq1VI/U7gVuAU4GfApcCg6SqoXd0NbLJpNjm0N+fSg79/Wu2Sdja3LBv1lWt7qR+gtTz6IzehDNJSdDXt2abQ61Noq/Pv4jLFBv2IX1exSTrkoTZmDVtg2i6o/SpiPh0h+MZk3WiDcLVJe0rlrxq3LBvNiLN2iDGkiD+GBE7jymyDpvwCcJGzg37ZmPSLEG0ug/i4QaPRygfBtysdxo17LvNxqwjWjVSrwJ2j4jN6x6bke6ENqtGuw37ThZmo9YqQZwH7NJg3Tc7HItZ+8oa9rfYAmbMSM+SezWZjVHTBBERn4yIaxusO6k7IZm1aXBwODlEwEMPwY03pmcPV2I2Zi3ng6gnaWdgk4i4owvxmI1MrUHaw5WYdVzL0VwlfVbSHvn13wG/BC6U1NbwF2Y9U0wSNU4OZqPWznDfhxZmcxsADgb2IU0najZ+uFeTWUe16uZ6CjBV0qmSPkuay+Fw4JPAFpI+JemVPYjTrDkPV2LWca2G2jg1Vy/tAmwFnBcRn5a0EXDweLuT2iYxD1di1nEt76SWtClp0L4nSAniSUm7AS+MiB/1IMa2+U5q83AlZiMzluG+iYhHqRusLyKWAEs6E55ZB9UnAycHs1Fre05qMzObXJwgzMyslBOEmZmVautOaklTgPcB04v7RMS7m+xzNuleiZURsVde9nngjaQG798Bx0TEqpJ9lwKPAE8DTzVqQDEzs+5ptwTxQ2AL4H+AHxcezZwDHFK37DJgr4h4MfBb4J+b7P/qiJjh5GBmVo12x2LaZKSD80XElZKm1y27tPD2auDvR3JMMzPrnXZLED+SNKvD53438JMG6wK4VNJCScc2O4ikYyUtkLRgaGiowyGOQ/X3rfgOYTPrknYTRD8pSTxem1FO0sOjPamkTwBPAd9osMnLImIf4FDgQ82G84iIeRExMyJmTpkyZbQhTQyDg2tPhuP5Dso5kZqNWVsJIiI2i4j1ImLj2oxyEbH5aE4o6WhS4/VR0eA27ohYnp9XAhcB+43mXOuUiDSvQXFsoU7Nd7CufZk6kZp1RNM2CEkvjIg7JO1Ttj4irh/JySQdApwEvCoiHmuwzabAehHxSH59MOAxn7o138HgYEowxYl3BgbS+EUT8Qu1mEghXVdxED8PvWHWvoho+ADm5eeflTyuaLHvBaR5q58ElgHvIQ3PcRdwY36cmbedBszPr3cFbsqP24BPNDtP8bHvvvvGOm/16oj0NZceq1eP7Vj9/ek4/f3l78ez+vhq74vXUXtMhOsxqwCwIBp8p7YcrG8iWecH6ytWK9WMtQTRjWP2QquSTwSsV6hBXb16fF+PWUWaDdbnO6knim7NdzARZ2Fr1R6zerUnDjLrACeIiaLRfAf9/WOb72AizsJWvPY5c1JJoZY4v/hFOPFETxxk1gGuYppoOjnfQX2ppL5BdyKUJMqqkda1hnezLhrTfBD5AJdHxEGtllkPdHK+g4k8C1ujks/s2cNtELX4a9c1nq/HbBxq1c312cAmwDaStgRq/8M2J/U8soluIn6ZNiv5QHn84/l6zMapViWIfwROICWD4j0PDwNf6VZQ1mMT7ct0Ipd8zCaQttogJB0XEV/uQTxjMinaIGyY5582G7NRt0FIek1EXAHcLekt9esj4vsditFs5CZaycdsgmlVxfRK4ArSJD/1AnCCMDNbR7VKEA/m57Mi4qpuB2NmZuNHqxvljsnPc7sdiJmZjS+tShCL8vzQUyTdXFguICJNHWpmZuugpgkiIo6UtD3wU+BNvQnJzMzGg5Z3UkfEPcDekjYCnp8X/yYinuxqZGZmVql2h9p4FXAesJRUvbSTpKMj4souxmZmZhVqK0EAXwQOjojfAEh6PmlCoH27FZiZmVWr3eG+N6wlB4CI+C2wYXdCMjOz8aDdBLFQ0lmSDsyPrwILm+0g6WxJKyXdWli2laTLJC3Oz1s22PcQSb+RtETSye1fjpmZdUq7CeL9pPmhjwf6gdvzsmbOAQ6pW3YycHlE7A5cnt+vQdL6pIEADwX2AI6UtEebcZqZWYe0bIOQtB6wMCL2IrVFtCUirpQ0vW7xYcCB+fW5wM+Bk+q22Q9YEhF35vN/K+93e7vnNjOzsWtZgoiI1cBNknbuwPm2i4gV+bgrgG1LttkBuKvwflleVkrSsZIWSFowNDTUgRDNzAza78U0FbhN0rXAo7WFEdGNm+fKhuRsOCZ5RMwD5kEa7rsL8ZiZTUrtJohTO3S+eyVNjYgVkqYCK0u2WQbsVHi/I7C8Q+c3M7M2tTPl6PuB3YBbSKO6PjWG810MHA2clp9/WLLNdcDukp4L3A0cAbx9DOc0M7NRaNUGcS4wk5QcDgX+s90DS7oA+DXwAknLJL2HlBheJ2kx8Lr8HknTJM0HyAnow6TxnxYB346I20Z0VWZmNmZNpxyVdEtE/FV+vQFwbUTs06vgRqqSKUc97aWZTWDNphxtVYJ4ZkC+MVYtrZsGB2FgICUFSM8DA2m5mdkE1ypB7C3p4fx4BHhx7bWkh3sR4LgVAatWwZw5w0liYCC9X7VqOGmYmU1QreaDWL9XgUw4EsyenV7PmZMeAP39abmrmcxsgmvaBjHRVNYGsV6hILZ6tZODmU0YY2mDsGZq1UpFxTYJM7MJzAlitIptDv39qeTQ379mm4SZ2QTW7p3UVk+Cvr412xxqbRJ9fa5mMrMJz20QY+X7IMxsAnMbRDfVJwMnBzNbRzhBmJlZKScIMzMr5QRhZmalnCDMzKyUE4SZmZVygjAzs1JOEGZmVsoJopOKNx1GrP3ezGwC6flQG5JeAFxYWLQr8KmI+FJhmwNJ81X/Pi/6fkR8umdBjsbgYJoHYvZsOPVUePDBtHzLLeGUU9L4TH19nkzIzCaMnieIiPgNMANA0vrA3cBFJZv+MiLe0MvYRq04eVCtpDB3bno+/ng44YT0vr/fQ3GY2YRR9WB9BwG/i4g/VBzH2NRPHlRUTBSeSMjMJpCq2yCOAC5osO4ASTdJ+omkPRsdQNKxkhZIWjA0NNSdKNtRTBKNnHpqb2IxM+uAyhKEpI2ANwHfKVl9PbBLROwNfBn4QaPjRMS8iJgZETOnTJnSnWDbUTZ5UNHcualdwo3VZjZBVFmCOBS4PiLurV8REQ9HxJ/y6/nAhpK26XWAbStOHnT88XDcca23NzMb56pMEEfSoHpJ0vZSqqyXtB8pzvt7GNvIFCcP+tKXYKut1k4Sxx2XtoGUTAYHnSjMbFyrZMIgSZsAdwG7RsRDedn7ASLiTEkfBj4APAU8DpwYEf/b6riVTBhUVOuhFDHcc6lm++3hrW9N6+fOTSUNSN1g3fXVzCoy7iYMiojHImLrWnLIy86MiDPz69MjYs+I2Dsi9m8nOXQgqObv21FLDgMDw91an34aZsyAe+6BL395zeQwd27qHuuShJmNQ1V3cx0fije5Fb/kR3NjW9lc1QsXwvrrD29TK1kUtxktT3lqZl1SdTfX6hVvchsYWLPBebS/7gcH10w2J55Yvt1Yk8Pg4HDMMBy7q6zMrAOcIGr3L/T3p6Sw3nrpeay/7oslkVrvplrVUs0JJ4y+eqkbic3MrKCSRupuGVMjdURKDjWrV3emqmZwcHhcpmL7wzXXpMdYElExKdR0otrKzCaNZo3UThDQ/S/aiHQXda2do6YTA/h1K7GZ2aTQLEG4kbqYHGpJoZgsOpEkpOH7HorH6kQDdf3d2wMDLkGYWUe4DaKs11GtTaKvb+0eQkUjLX3Vf2l3IjnUEtvq1cPtKMWGazOzUXIJAtb+dV9LEsUv8E52he2ERokN1k5sZmaj4ARR0+zXfbHHEKxZDVXlHA/tJDYzs1FygmhH/XwPtUQxHnoMdbLaysyswL2YRsI9hsxsHTPuxmKakBr1GFqHEqyZWZETRDvcY8jMJiG3QbTDPYbMbBJyG8RIeORUM1vHuA2iU9xjyMwmEScIMzMrVUmCkLRU0i2SbpS0Vp2QkrmSlki6WdI+VcRpZjaZVdlI/eqIuK/BukOB3fPjpcAZ+dnMzHpkvFYxHQacF8nVQJ+kqVUHZWY2mVSVIAK4VNJCSceWrN8BuKvwfllethZJx0paIGnB0NBQF0I1M5ucqkoQL4uIfUhVSR+S9Mq69WXdg0r740bEvIiYGREzp0yZ0uk4zcwmrUoSREQsz88rgYuA/eo2WQbsVHi/I7C8N9GZmRlUkCAkbSpps9pr4GDg1rrNLgbemXsz7Q88FBErehyqtWusEymZ2bhURS+m7YCLlG4y2wD4ZkRcIun9ABFxJjAfmAUsAR4DjqkgTmvHeJtIycw6pucJIiLuBPYuWX5m4XUAH+plXDYK43UiJTPrCA/WZ6M3nidSMrMx82B9NnaeSMlswvJgfdY9nkjJbJ3lBOEeOKPniZTM1mmTuw3CPXDGxhMpma3TJm+CcA+czhgcXPOzqiUJf3ZmE97kTRDugdM5nkjJbJ3kXkzugWNmk5h7MTXiHjhmZg1N3gThHjhmZk1N7jYI98AxM2vIbRD1vZXce8nMJhG3QTTjHjhmZqWcIMzMrJQThJmZlXKCMDOzUk4QZmZWap3qxSRpCPhD1XGMwjbAfVUHMU74sxjmz2KYP4thnf4sdomIKWUr1qkEMVFJWtCom9lk489imD+LYf4shvXys3AVk5mZlXKCMDOzUk4Q48O8qgMYR/xZDPNnMcyfxbCefRZugzAzs1IuQZiZWSknCDMzK+UEUTFJfZK+K+kOSYskHVB1TFWRNCDpNkm3SrpA0rOrjqlXJJ0taaWkWwvLtpJ0maTF+XnLKmPslQafxefz/5GbJV0kqa/KGHuh7HMorPuopJC0TTdjcIKo3hzgkoh4IbA3sKjieCohaQfgeGBmROwFrA8cUW1UPXUOcEjdspOByyNid+Dy/H4yOIe1P4vLgL0i4sXAb4F/7nVQFTiHtT8HJO0EvA74Y7cDcIKokKTNgVcCZwFExBMRsaraqCq1AbCxpA2ATYDlFcfTMxFxJfBA3eLDgHPz63OBN/c0qIqUfRYRcWlEPJXfXg3s2PPAeqzB3wTAbOBjQNd7GDlBVGtXYAj4uqQbJH1N0qZVB1WFiLgb+E+xnPcAAAb2SURBVALpV9EK4KGIuLTaqCq3XUSsAMjP21Ycz3jxbuAnVQdRBUlvAu6OiJt6cT4niGptAOwDnBERLwEeZfJUI6wh168fBjwXmAZsKukfqo3KxhtJnwCeAr5RdSy9JmkT4BPAp3p1TieIai0DlkXENfn9d0kJYzJ6LfD7iBiKiCeB7wN/XXFMVbtX0lSA/Lyy4ngqJelo4A3AUTE5b+B6HukH1E2SlpKq2a6XtH23TugEUaGIuAe4S9IL8qKDgNsrDKlKfwT2l7SJJJE+i0nZYF9wMXB0fn008MMKY6mUpEOAk4A3RcRjVcdThYi4JSK2jYjpETGd9ANzn/w90hVOENU7DviGpJuBGcC/VxxPJXIp6rvA9cAtpL/NSTO8gqQLgF8DL5C0TNJ7gNOA10laTOq1clqVMfZKg8/idGAz4DJJN0o6s9Ige6DB59DbGCZnSc3MzFpxCcLMzEo5QZiZWSknCDMzK+UEYWZmpZwgzMyslBOEdYykp3MXxFslfSff+dnJ4/9cUtPJ2iWdUDyvpPndHPlT0hRJ1+ShUl5Rt25DSafl0VhvlXStpEOLceXHB0d4zmmSvjvCfT4saUn9CKBK5uZ1N0sqvVFT0r6Sbsnbzc33qiDpWZIuzMuvkTS9sM/R+doX55vcbIJxgrBOejwiZuTRWJ8A3l9BDCeQBvoDICJmdXkAxIOAOyLiJRHxy7p1nwGmkkYh3Qt4I6kvfzGuPmBECSIilkfE348wzl+R7lb/Q93yQ4Hd8+NY4IwG+5+R19e2rY0y+h7gwYjYjTSI3OcgDVUOnAK8FNgPOGWyDFe+LnGCsG75JbBbntPgB/nX6dWSXgwgaVDS+ZKuyL8w35eXHyjpR7WDSDpd0rvqDy7pDEkLlOaPODUvO540jtPPJP0sL1ta+8Us6cT8S/5WSSfkZdOV5uH4aj7WpZI2LjnfLpIuz9dxuaSdJc0A/gOYlUtOGxe23wR4H3BcRPwFICLujYhv18V1GvC8vP/n82dyWOE431AaoK0Yy3TlOQIkvUvS9yVdkj/H/yj7x4iIGyJiacmqw4DzIrka6FMe3qNwvqnA5hHx6zzExXkMjyxbHHH2u8BBuXTxN8BlEfFARDxIGq77kHy80yTdnj/LL5TFa+ODE4R1nNJw3YeS7og+Fbghj+P/cdKXS82LgdcDBwCfkjRtBKf5RETMzMd4laQXR8Rc0hDhr46IV9fFtC9wDOkX7f7A+yS9JK/eHfhKROwJrAL+ruR8p5O+SF9MGihubkTcSBo47cJccnq8sP1uwB8j4uEW13Ey8Lu8/z8BX8txImkL0nhU81scYwZwOPBXwOFK8wW0awfgrsL7ZXlZ/TbLGmzzzP55OO6HgK0bHTeXLP4W2DN/lv86glitx5wgrJM2lnQjsIA0ttJZwMuB8wEi4gpg6/zFB/DDiHg8Iu4DfkaqimjX2yRdD9wA7Ans0WL7lwMXRcSjEfEn0mCAtTaD3+cve4CFwPSS/Q8Avplfn5+P13ER8QtSyWtb4Ejge4V5EBq5PCIeiog/k8by2mUEp1RZGCPYptG6RssfBv4MfE3SW4BJOa7SROEEYZ1Ua4OYERHHRcQTNP9yqf8iCtJQzsW/y7WmHZX0XOCjwEH5V+iPy7ar363Jur8UXj9NGoa9lVZj1CwBdpa0WRvHqnc+cBSpJPH1NrYfTfw1y4BiiWNH1p6oaRlrTtBT3OaZ/XPJcQvSJDelx83Jbj/ge6RqqktGEKv1mBOEdduVpC87JB0I3FeodjlM0rMlbQ0cCFxHakTdI/eO2YLUCFxvc9LcGQ9J2o5UnVXzCLkhuCSONyuNFrspqZqjvlG5mf9leArUo4Crmm2cRxw9C5graSNIdflae46LsnjPITW2ExG3jSDG0bgYeGfuzbQ/aaKmFTneyyXtkN8/Imn/3L7wToZHli2OOPv3wBW5neKnwMGStsyN0wcDP5X0HGCLiJifr3FGl6/PxmAkvzTMRmOQNGPezaTqhGJ3x2tJv/53Bj4TEcsBJH0buBlYTKpCWkNE3CTpBuA24E5SD52aecBPJK0otkNExPWSzsnnBPhaRNxQ7JbZwvHA2ZL+iTQL4DFt7PNJUh377ZL+TEpqa0z2EhH3S/pVbnT+SUT8U0TcK2kR8IM2Y2spN+B/DNgeuFnS/Ih4L6l9YxapxPMYw+0f65HaUWpTXn6AlLg2Js3mVpvR7SzgfElL8rZH5Ot6QNJnSEkf4NN52VTgh5KeTSrVDXTqGq3zPJqrVULSIPCniHAvljq5B9QtpLH+H6oohr2Ad0fEiVWc38YHVzGZjSOSXgvcAXy5quQAEBG3OjmYSxBmZlbKJQgzMyvlBGFmZqWcIMzMrJQThJmZlXKCMDOzUv8H0OIR+RH0+g8AAAAASUVORK5CYII=\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Create a scatter plot of the data. To change the markers to red \"x\",\n",
+    "# we used the 'marker' and 'c' parameters\n",
+    "plt.scatter(x_train, y_train, marker='x', c='r') \n",
+    "\n",
+    "# Set the title\n",
+    "plt.title(\"Profits vs. Population per city\")\n",
+    "# Set the y-axis label\n",
+    "plt.ylabel('Profit in $10,000')\n",
+    "# Set the x-axis label\n",
+    "plt.xlabel('Population of City in 10,000s')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "# Define training data\n",
+    "x_train = np.array([1.0, 2.0, 3.0, 4.0])\n",
+    "y_train = np.array([1.5, 1.9, 3.2, 3.8])\n",
+    "\n",
+    "# Scatter plot\n",
+    "plt.scatter(x_train, y_train, marker='x', c='r')\n",
+    "plt.title(\"Profits vs. Population per city\")\n",
+    "plt.ylabel('Profit in $10,000')\n",
+    "plt.xlabel('Population of City in 10,000s')\n",
+    "plt.show()\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Your goal is to build a linear regression model to fit this data.\n",
+    "- With this model, you can then input a new city's population, and have the model estimate your restaurant's potential monthly profits for that city."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"4\"></a>\n",
+    "## 4 - Refresher on linear regression\n",
+    "\n",
+    "In this practice lab, you will fit the linear regression parameters $(w,b)$ to your dataset.\n",
+    "- The model function for linear regression, which is a function that maps from `x` (city population) to `y` (your restaurant's monthly profit for that city) is represented as \n",
+    "    $$f_{w,b}(x) = wx + b$$\n",
+    "    \n",
+    "\n",
+    "- To train a linear regression model, you want to find the best $(w,b)$ parameters that fit your dataset.  \n",
+    "\n",
+    "    - To compare how one choice of $(w,b)$ is better or worse than another choice, you can evaluate it with a cost function $J(w,b)$\n",
+    "      - $J$ is a function of $(w,b)$. That is, the value of the cost $J(w,b)$ depends on the value of $(w,b)$.\n",
+    "  \n",
+    "    - The choice of $(w,b)$ that fits your data the best is the one that has the smallest cost $J(w,b)$.\n",
+    "\n",
+    "\n",
+    "- To find the values $(w,b)$ that gets the smallest possible cost $J(w,b)$, you can use a method called **gradient descent**. \n",
+    "  - With each step of gradient descent, your parameters $(w,b)$ come closer to the optimal values that will achieve the lowest cost $J(w,b)$.\n",
+    "  \n",
+    "\n",
+    "- The trained linear regression model can then take the input feature $x$ (city population) and output a prediction $f_{w,b}(x)$ (predicted monthly profit for a restaurant in that city)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"5\"></a>\n",
+    "## 5 - Compute Cost\n",
+    "\n",
+    "Gradient descent involves repeated steps to adjust the value of your parameter $(w,b)$ to gradually get a smaller and smaller cost $J(w,b)$.\n",
+    "- At each step of gradient descent, it will be helpful for you to monitor your progress by computing the cost $J(w,b)$ as $(w,b)$ gets updated. \n",
+    "- In this section, you will implement a function to calculate $J(w,b)$ so that you can check the progress of your gradient descent implementation.\n",
+    "\n",
+    "#### Cost function\n",
+    "As you may recall from the lecture, for one variable, the cost function for linear regression $J(w,b)$ is defined as\n",
+    "\n",
+    "$$J(w,b) = \\frac{1}{2m} \\sum\\limits_{i = 0}^{m-1} (f_{w,b}(x^{(i)}) - y^{(i)})^2$$ \n",
+    "\n",
+    "- You can think of $f_{w,b}(x^{(i)})$ as the model's prediction of your restaurant's profit, as opposed to $y^{(i)}$, which is the actual profit that is recorded in the data.\n",
+    "- $m$ is the number of training examples in the dataset\n",
+    "\n",
+    "#### Model prediction\n",
+    "\n",
+    "- For linear regression with one variable, the prediction of the model $f_{w,b}$ for an example $x^{(i)}$ is representented as:\n",
+    "\n",
+    "$$ f_{w,b}(x^{(i)}) = wx^{(i)} + b$$\n",
+    "\n",
+    "This is the equation for a line, with an intercept $b$ and a slope $w$\n",
+    "\n",
+    "#### Implementation\n",
+    "\n",
+    "Please complete the `compute_cost()` function below to compute the cost $J(w,b)$."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"ex01\"></a>\n",
+    "### Exercise 1\n",
+    "\n",
+    "Complete the `compute_cost` below to:\n",
+    "\n",
+    "* Iterate over the training examples, and for each example, compute:\n",
+    "    * The prediction of the model for that example \n",
+    "    $$\n",
+    "    f_{wb}(x^{(i)}) =  wx^{(i)} + b \n",
+    "    $$\n",
+    "   \n",
+    "    * The cost for that example  $$cost^{(i)} =  (f_{wb} - y^{(i)})^2$$\n",
+    "    \n",
+    "\n",
+    "* Return the total cost over all examples\n",
+    "$$J(\\mathbf{w},b) = \\frac{1}{2m} \\sum\\limits_{i = 0}^{m-1} cost^{(i)}$$\n",
+    "  * Here, $m$ is the number of training examples and $\\sum$ is the summation operator\n",
+    "\n",
+    "If you get stuck, you can check out the hints presented after the cell below to help you with the implementation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {
+    "deletable": false
+   },
+   "outputs": [],
+   "source": [
+    "# UNQ_C1\n",
+    "# GRADED FUNCTION: compute_cost\n",
+    "def compute_cost(x, y, w, b):\n",
+    "    \"\"\"\n",
+    "    Computes the cost function for linear regression.\n",
+    "    Args:\n",
+    "      x (ndarray): Shape (m,) Input to the model\n",
+    "      y (ndarray): Shape (m,) Actual output values\n",
+    "      w, b (scalar): Parameters of the model\n",
+    "    Returns:\n",
+    "      total_cost (float): The cost value\n",
+    "    \"\"\"\n",
+    "    \n",
+    "    m = x.shape[0]     # number of training examples\n",
+    "    total_cost = 0.0\n",
+    "\n",
+    "    for i in range(m):\n",
+    "        f_wb = w * x[i] + b\n",
+    "        total_cost += (f_wb - y[i])**2\n",
+    "\n",
+    "    total_cost = total_cost / (2 * m)\n",
+    "\n",
+    "    return total_cost\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<details>\n",
+    "  <summary><font size=\"3\" color=\"darkgreen\"><b>Click for hints</b></font></summary>\n",
+    "    \n",
+    "    \n",
+    "   * You can represent a summation operator eg: $h = \\sum\\limits_{i = 0}^{m-1} 2i$ in code as follows:\n",
+    "    \n",
+    "    ```python \n",
+    "    h = 0\n",
+    "    for i in range(m):\n",
+    "        h = h + 2*i\n",
+    "    ```\n",
+    "  \n",
+    "   * In this case, you can iterate over all the examples in `x` using a for loop and add the `cost` from each iteration to a variable (`cost_sum`) initialized outside the loop.\n",
+    "\n",
+    "   * Then, you can return the `total_cost` as `cost_sum` divided by `2m`.\n",
+    "   * If you are new to Python, please check that your code is properly indented with consistent spaces or tabs. Otherwise, it might produce a different output or raise an `IndentationError: unexpected indent` error. You can refer to [this topic](https://community.deeplearning.ai/t/indentation-in-python-indentationerror-unexpected-indent/159398) in our community for details.\n",
+    "\n",
+    "    <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b> Click for more hints</b></font></summary>\n",
+    "        \n",
+    "    * Here's how you can structure the overall implementation for this function\n",
+    "    \n",
+    "    ```python \n",
+    "    def compute_cost(x, y, w, b):\n",
+    "        # number of training examples\n",
+    "        m = x.shape[0] \n",
+    "    \n",
+    "        # You need to return this variable correctly\n",
+    "        total_cost = 0\n",
+    "    \n",
+    "        ### START CODE HERE ###  \n",
+    "        # Variable to keep track of sum of cost from each example\n",
+    "        cost_sum = 0\n",
+    "    \n",
+    "        # Loop over training examples\n",
+    "        for i in range(m):\n",
+    "            # Your code here to get the prediction f_wb for the ith example\n",
+    "            f_wb = \n",
+    "            # Your code here to get the cost associated with the ith example\n",
+    "            cost = \n",
+    "        \n",
+    "            # Add to sum of cost for each example\n",
+    "            cost_sum = cost_sum + cost \n",
+    "\n",
+    "        # Get the total cost as the sum divided by (2*m)\n",
+    "        total_cost = (1 / (2 * m)) * cost_sum\n",
+    "        ### END CODE HERE ### \n",
+    "\n",
+    "        return total_cost\n",
+    "    ```\n",
+    "    \n",
+    "    * If you're still stuck, you can check the hints presented below to figure out how to calculate `f_wb` and `cost`.\n",
+    "    \n",
+    "    <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b>Hint to calculate f_wb</b></font></summary>\n",
+    "           &emsp; &emsp; For scalars $a$, $b$ and $c$ (<code>x[i]</code>, <code>w</code> and <code>b</code> are all scalars), you can calculate the equation $h = ab + c$ in code as <code>h = a * b + c</code>\n",
+    "          <details>\n",
+    "              <summary><font size=\"2\" color=\"blue\"><b>&emsp; &emsp; More hints to calculate f</b></font></summary>\n",
+    "               &emsp; &emsp; You can compute f_wb as <code>f_wb = w * x[i] + b </code>\n",
+    "           </details>\n",
+    "    </details>\n",
+    "\n",
+    "     <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b>Hint to calculate cost</b></font></summary>\n",
+    "          &emsp; &emsp; You can calculate the square of a variable z as z**2\n",
+    "          <details>\n",
+    "              <summary><font size=\"2\" color=\"blue\"><b>&emsp; &emsp; More hints to calculate cost</b></font></summary>\n",
+    "              &emsp; &emsp; You can compute cost as <code>cost = (f_wb - y[i]) ** 2</code>\n",
+    "          </details>\n",
+    "    </details>\n",
+    "        \n",
+    "    </details>\n",
+    "\n",
+    "</details>\n",
+    "\n",
+    "    \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "You can check if your implementation was correct by running the following test code:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'numpy.float64'>\n",
+      "Cost at initial w: 6.668\n",
+      "\u001b[92mAll tests passed!\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Compute cost with some initial values for paramaters w, b\n",
+    "initial_w = 2\n",
+    "initial_b = 1\n",
+    "\n",
+    "cost = compute_cost(x_train, y_train, initial_w, initial_b)\n",
+    "print(type(cost))\n",
+    "print(f'Cost at initial w: {cost:.3f}')\n",
+    "\n",
+    "# Public tests\n",
+    "from public_tests import *\n",
+    "compute_cost_test(compute_cost)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Expected Output**:\n",
+    "<table>\n",
+    "  <tr>\n",
+    "    <td> <b>Cost at initial w:<b> 75.203 </td> \n",
+    "  </tr>\n",
+    "</table>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"6\"></a>\n",
+    "## 6 - Gradient descent \n",
+    "\n",
+    "In this section, you will implement the gradient for parameters $w, b$ for linear regression. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "As described in the lecture videos, the gradient descent algorithm is:\n",
+    "\n",
+    "$$\\begin{align*}& \\text{repeat until convergence:} \\; \\lbrace \\newline \\; & \\phantom {0000} b := b -  \\alpha \\frac{\\partial J(w,b)}{\\partial b} \\newline       \\; & \\phantom {0000} w := w -  \\alpha \\frac{\\partial J(w,b)}{\\partial w} \\tag{1}  \\; & \n",
+    "\\newline & \\rbrace\\end{align*}$$\n",
+    "\n",
+    "where, parameters $w, b$ are both updated simultaniously and where  \n",
+    "$$\n",
+    "\\frac{\\partial J(w,b)}{\\partial b}  = \\frac{1}{m} \\sum\\limits_{i = 0}^{m-1} (f_{w,b}(x^{(i)}) - y^{(i)}) \\tag{2}\n",
+    "$$\n",
+    "$$\n",
+    "\\frac{\\partial J(w,b)}{\\partial w}  = \\frac{1}{m} \\sum\\limits_{i = 0}^{m-1} (f_{w,b}(x^{(i)}) -y^{(i)})x^{(i)} \\tag{3}\n",
+    "$$\n",
+    "* m is the number of training examples in the dataset\n",
+    "\n",
+    "    \n",
+    "*  $f_{w,b}(x^{(i)})$ is the model's prediction, while $y^{(i)}$, is the target value\n",
+    "\n",
+    "\n",
+    "You will implement a function called `compute_gradient` which calculates $\\frac{\\partial J(w)}{\\partial w}$, $\\frac{\\partial J(w)}{\\partial b}$ "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"ex02\"></a>\n",
+    "### Exercise 2\n",
+    "\n",
+    "Please complete the `compute_gradient` function to:\n",
+    "\n",
+    "* Iterate over the training examples, and for each example, compute:\n",
+    "    * The prediction of the model for that example \n",
+    "    $$\n",
+    "    f_{wb}(x^{(i)}) =  wx^{(i)} + b \n",
+    "    $$\n",
+    "   \n",
+    "    * The gradient for the parameters $w, b$ from that example \n",
+    "        $$\n",
+    "        \\frac{\\partial J(w,b)}{\\partial b}^{(i)}  =  (f_{w,b}(x^{(i)}) - y^{(i)}) \n",
+    "        $$\n",
+    "        $$\n",
+    "        \\frac{\\partial J(w,b)}{\\partial w}^{(i)}  =  (f_{w,b}(x^{(i)}) -y^{(i)})x^{(i)} \n",
+    "        $$\n",
+    "    \n",
+    "\n",
+    "* Return the total gradient update from all the examples\n",
+    "    $$\n",
+    "    \\frac{\\partial J(w,b)}{\\partial b}  = \\frac{1}{m} \\sum\\limits_{i = 0}^{m-1} \\frac{\\partial J(w,b)}{\\partial b}^{(i)}\n",
+    "    $$\n",
+    "    \n",
+    "    $$\n",
+    "    \\frac{\\partial J(w,b)}{\\partial w}  = \\frac{1}{m} \\sum\\limits_{i = 0}^{m-1} \\frac{\\partial J(w,b)}{\\partial w}^{(i)} \n",
+    "    $$\n",
+    "  * Here, $m$ is the number of training examples and $\\sum$ is the summation operator\n",
+    "\n",
+    "If you get stuck, you can check out the hints presented after the cell below to help you with the implementation."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {
+    "deletable": false
+   },
+   "outputs": [],
+   "source": [
+    "# UNQ_C2\n",
+    "# GRADED FUNCTION: compute_gradient\n",
+    "def compute_gradient(x, y, w, b):\n",
+    "    \"\"\"\n",
+    "    Computes the gradient for linear regression\n",
+    "    Args:\n",
+    "      x (ndarray): Shape (m,) Input to the model\n",
+    "      y (ndarray): Shape (m,) Label\n",
+    "      w, b (scalar): Parameters of the model\n",
+    "    Returns\n",
+    "      dj_dw (scalar): The gradient of the cost w.r.t. the parameter w\n",
+    "      dj_db (scalar): The gradient of the cost w.r.t. the parameter b\n",
+    "    \"\"\"\n",
+    "\n",
+    "    # Number of training examples\n",
+    "    m = x.shape[0]\n",
+    "\n",
+    "    # gradients\n",
+    "    dj_dw = 0.0\n",
+    "    dj_db = 0.0\n",
+    "\n",
+    "    # compute partial derivatives\n",
+    "    for i in range(m):\n",
+    "        f_wb_i = w * x[i] + b          # prediction for example i\n",
+    "        err_i  = f_wb_i - y[i]         # error for example i\n",
+    "        dj_dw += err_i * x[i]          # accumulate gradient for w\n",
+    "        dj_db += err_i                 # accumulate gradient for b\n",
+    "\n",
+    "    dj_dw = dj_dw / m\n",
+    "    dj_db = dj_db / m\n",
+    "\n",
+    "    return dj_dw, dj_db\n",
+    " \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<details>\n",
+    "  <summary><font size=\"3\" color=\"darkgreen\"><b>Click for hints</b></font></summary>\n",
+    "    \n",
+    "   * You can represent a summation operator eg: $h = \\sum\\limits_{i = 0}^{m-1} 2i$ in code as follows:\n",
+    "    \n",
+    "   ```python \n",
+    "    h = 0\n",
+    "    for i in range(m):\n",
+    "        h = h + 2*i\n",
+    "   ```\n",
+    "    \n",
+    "   * In this case, you can iterate over all the examples in `x` using a for loop and for each example, keep adding the gradient from that example to the variables `dj_dw` and `dj_db` which are initialized outside the loop. \n",
+    "\n",
+    "   * Then, you can return `dj_dw` and `dj_db` both divided by `m`.    \n",
+    "    <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b> Click for more hints</b></font></summary>\n",
+    "        \n",
+    "    * Here's how you can structure the overall implementation for this function\n",
+    "    \n",
+    "    ```python \n",
+    "    def compute_gradient(x, y, w, b): \n",
+    "        \"\"\"\n",
+    "        Computes the gradient for linear regression \n",
+    "        Args:\n",
+    "          x (ndarray): Shape (m,) Input to the model (Population of cities) \n",
+    "          y (ndarray): Shape (m,) Label (Actual profits for the cities)\n",
+    "          w, b (scalar): Parameters of the model  \n",
+    "        Returns\n",
+    "          dj_dw (scalar): The gradient of the cost w.r.t. the parameters w\n",
+    "          dj_db (scalar): The gradient of the cost w.r.t. the parameter b     \n",
+    "        \"\"\"\n",
+    "    \n",
+    "        # Number of training examples\n",
+    "        m = x.shape[0]\n",
+    "    \n",
+    "        # You need to return the following variables correctly\n",
+    "        dj_dw = 0\n",
+    "        dj_db = 0\n",
+    "    \n",
+    "        ### START CODE HERE ### \n",
+    "        # Loop over examples\n",
+    "        for i in range(m):  \n",
+    "            # Your code here to get prediction f_wb for the ith example\n",
+    "            f_wb = \n",
+    "            \n",
+    "            # Your code here to get the gradient for w from the ith example \n",
+    "            dj_dw_i = \n",
+    "        \n",
+    "            # Your code here to get the gradient for b from the ith example \n",
+    "            dj_db_i = \n",
+    "     \n",
+    "            # Update dj_db : In Python, a += 1  is the same as a = a + 1\n",
+    "            dj_db += dj_db_i\n",
+    "        \n",
+    "            # Update dj_dw\n",
+    "            dj_dw += dj_dw_i\n",
+    "    \n",
+    "        # Divide both dj_dw and dj_db by m\n",
+    "        dj_dw = dj_dw / m\n",
+    "        dj_db = dj_db / m\n",
+    "        ### END CODE HERE ### \n",
+    "        \n",
+    "        return dj_dw, dj_db\n",
+    "    ```\n",
+    "        \n",
+    "    * If you're still stuck, you can check the hints presented below to figure out how to calculate `f_wb` and `cost`.\n",
+    "    \n",
+    "    <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b>Hint to calculate f_wb</b></font></summary>\n",
+    "           &emsp; &emsp; You did this in the previous exercise! For scalars $a$, $b$ and $c$ (<code>x[i]</code>, <code>w</code> and <code>b</code> are all scalars), you can calculate the equation $h = ab + c$ in code as <code>h = a * b + c</code>\n",
+    "          <details>\n",
+    "              <summary><font size=\"2\" color=\"blue\"><b>&emsp; &emsp; More hints to calculate f</b></font></summary>\n",
+    "               &emsp; &emsp; You can compute f_wb as <code>f_wb = w * x[i] + b </code>\n",
+    "           </details>\n",
+    "    </details>\n",
+    "        \n",
+    "    <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b>Hint to calculate dj_dw_i</b></font></summary>\n",
+    "           &emsp; &emsp; For scalars $a$, $b$ and $c$ (<code>f_wb</code>, <code>y[i]</code> and <code>x[i]</code> are all scalars), you can calculate the equation $h = (a - b)c$ in code as <code>h = (a-b)*c</code>\n",
+    "          <details>\n",
+    "              <summary><font size=\"2\" color=\"blue\"><b>&emsp; &emsp; More hints to calculate f</b></font></summary>\n",
+    "               &emsp; &emsp; You can compute dj_dw_i as <code>dj_dw_i = (f_wb - y[i]) * x[i] </code>\n",
+    "           </details>\n",
+    "    </details>\n",
+    "        \n",
+    "    <details>\n",
+    "          <summary><font size=\"2\" color=\"darkblue\"><b>Hint to calculate dj_db_i</b></font></summary>\n",
+    "             &emsp; &emsp; You can compute dj_db_i as <code> dj_db_i = f_wb - y[i] </code>\n",
+    "    </details>\n",
+    "        \n",
+    "    </details>\n",
+    "\n",
+    "</details>\n",
+    "\n",
+    "    \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Run the cells below to check your implementation of the `compute_gradient` function with two different initializations of the parameters $w$,$b$."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Gradient at initial w, b (zeros): -7.525 -2.5999999999999996\n",
+      "Using X with shape (4, 1)\n",
+      "\u001b[92mAll tests passed!\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Compute and display gradient with w initialized to zeroes\n",
+    "initial_w = 0\n",
+    "initial_b = 0\n",
+    "\n",
+    "tmp_dj_dw, tmp_dj_db = compute_gradient(x_train, y_train, initial_w, initial_b)\n",
+    "print('Gradient at initial w, b (zeros):', tmp_dj_dw, tmp_dj_db)\n",
+    "\n",
+    "compute_gradient_test(compute_gradient)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now let's run the gradient descent algorithm implemented above on our dataset.\n",
+    "\n",
+    "**Expected Output**:\n",
+    "<table>\n",
+    "  <tr>\n",
+    "    <td> <b>Gradient at initial , b (zeros)<b></td>\n",
+    "    <td> -65.32884975 -5.83913505154639</td> \n",
+    "  </tr>\n",
+    "</table>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Gradient at test w, b: -5.525 -1.9000000000000001\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Compute and display cost and gradient with non-zero w\n",
+    "test_w = 0.2\n",
+    "test_b = 0.2\n",
+    "tmp_dj_dw, tmp_dj_db = compute_gradient(x_train, y_train, test_w, test_b)\n",
+    "\n",
+    "print('Gradient at test w, b:', tmp_dj_dw, tmp_dj_db)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Expected Output**:\n",
+    "<table>\n",
+    "  <tr>\n",
+    "    <td> <b>Gradient at test w<b></td>\n",
+    "    <td> -47.41610118 -4.007175051546391</td> \n",
+    "  </tr>\n",
+    "</table>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<a name=\"2.6\"></a>\n",
+    "### 2.6 Learning parameters using batch gradient descent \n",
+    "\n",
+    "You will now find the optimal parameters of a linear regression model by using batch gradient descent. Recall batch refers to running all the examples in one iteration.\n",
+    "- You don't need to implement anything for this part. Simply run the cells below. \n",
+    "\n",
+    "- A good way to verify that gradient descent is working correctly is to look\n",
+    "at the value of $J(w,b)$ and check that it is decreasing with each step. \n",
+    "\n",
+    "- Assuming you have implemented the gradient and computed the cost correctly and you have an appropriate value for the learning rate alpha, $J(w,b)$ should never increase and should converge to a steady value by the end of the algorithm."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import copy\n",
+    "import math\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [],
+   "source": [
+    "def gradient_descent(x, y, w_in, b_in, cost_function, gradient_function, alpha, num_iters): \n",
+    "    \"\"\"\n",
+    "    Performs batch gradient descent to learn theta. Updates theta by taking \n",
+    "    num_iters gradient steps with learning rate alpha\n",
+    "    \n",
+    "    Args:\n",
+    "      x :    (ndarray): Shape (m,)\n",
+    "      y :    (ndarray): Shape (m,)\n",
+    "      w_in, b_in : (scalar) Initial values of parameters of the model\n",
+    "      cost_function: function to compute cost\n",
+    "      gradient_function: function to compute the gradient\n",
+    "      alpha : (float) Learning rate\n",
+    "      num_iters : (int) number of iterations to run gradient descent\n",
+    "    Returns\n",
+    "      w : (ndarray): Shape (1,) Updated values of parameters of the model after\n",
+    "          running gradient descent\n",
+    "      b : (scalar)                Updated value of parameter of the model after\n",
+    "          running gradient descent\n",
+    "    \"\"\"\n",
+    "    \n",
+    "    # number of training examples\n",
+    "    m = len(x)\n",
+    "    \n",
+    "    # An array to store cost J and w's at each iteration — primarily for graphing later\n",
+    "    J_history = []\n",
+    "    w_history = []\n",
+    "    w = copy.deepcopy(w_in)  #avoid modifying global w within function\n",
+    "    b = b_in\n",
+    "    \n",
+    "    for i in range(num_iters):\n",
+    "\n",
+    "        # Calculate the gradient and update the parameters\n",
+    "        dj_dw, dj_db = gradient_function(x, y, w, b )  \n",
+    "\n",
+    "        # Update Parameters using w, b, alpha and gradient\n",
+    "        w = w - alpha * dj_dw               \n",
+    "        b = b - alpha * dj_db               \n",
+    "\n",
+    "        # Save cost J at each iteration\n",
+    "        if i<100000:      # prevent resource exhaustion \n",
+    "            cost =  cost_function(x, y, w, b)\n",
+    "            J_history.append(cost)\n",
+    "\n",
+    "        # Print cost every at intervals 10 times or as many iterations if < 10\n",
+    "        if i% math.ceil(num_iters/10) == 0:\n",
+    "            w_history.append(w)\n",
+    "            print(f\"Iteration {i:4}: Cost {float(J_history[-1]):8.2f}   \")\n",
+    "        \n",
+    "    return w, b, J_history, w_history #return w and J,w history for graphing"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Now let's run the gradient descent algorithm above to learn the parameters for our dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Iteration    0: Cost     3.21   \n",
+      "Iteration  150: Cost     0.02   \n",
+      "Iteration  300: Cost     0.02   \n",
+      "Iteration  450: Cost     0.02   \n",
+      "Iteration  600: Cost     0.02   \n",
+      "Iteration  750: Cost     0.02   \n",
+      "Iteration  900: Cost     0.02   \n",
+      "Iteration 1050: Cost     0.02   \n",
+      "Iteration 1200: Cost     0.02   \n",
+      "Iteration 1350: Cost     0.02   \n",
+      "w,b found by gradient descent: 0.8287360720546059 0.5243148828244257\n"
+     ]
+    }
+   ],
+   "source": [
+    "# initialize fitting parameters. Recall that the shape of w is (n,)\n",
+    "initial_w = 0.\n",
+    "initial_b = 0.\n",
+    "\n",
+    "# some gradient descent settings\n",
+    "iterations = 1500\n",
+    "alpha = 0.01\n",
+    "\n",
+    "w,b,_,_ = gradient_descent(x_train ,y_train, initial_w, initial_b, \n",
+    "                     compute_cost, compute_gradient, alpha, iterations)\n",
+    "print(\"w,b found by gradient descent:\", w, b)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Expected Output**:\n",
+    "<table>\n",
+    "  <tr>\n",
+    "    <td> <b> w, b found by gradient descent<b></td>\n",
+    "    <td> 1.16636235 -3.63029143940436</td> \n",
+    "  </tr>\n",
+    "</table>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We will now use the final parameters from gradient descent to plot the linear fit. \n",
+    "\n",
+    "Recall that we can get the prediction for a single example $f(x^{(i)})= wx^{(i)}+b$. \n",
+    "\n",
+    "To calculate the predictions on the entire dataset, we can loop through all the training examples and calculate the prediction for each example. This is shown in the code block below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [],
+   "source": [
+    "m = x_train.shape[0]\n",
+    "predicted = np.zeros(m)\n",
+    "\n",
+    "for i in range(m):\n",
+    "    predicted[i] = w * x_train[i] + b"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We will now plot the predicted values to see the linear fit."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Text(0.5, 0, 'Population of City in 10,000s')"
+      ]
+     },
+     "execution_count": 26,
+     "metadata": {},
+     "output_type": "execute_result"
+    },
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Plot the linear fit\n",
+    "plt.plot(x_train, predicted, c = \"b\")\n",
+    "\n",
+    "# Create a scatter plot of the data. \n",
+    "plt.scatter(x_train, y_train, marker='x', c='r') \n",
+    "\n",
+    "# Set the title\n",
+    "plt.title(\"Profits vs. Population per city\")\n",
+    "# Set the y-axis label\n",
+    "plt.ylabel('Profit in $10,000')\n",
+    "# Set the x-axis label\n",
+    "plt.xlabel('Population of City in 10,000s')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Your final values of $w,b$ can also be used to make predictions on profits. Let's predict what the profit would be in areas of 35,000 and 70,000 people. \n",
+    "\n",
+    "- The model takes in population of a city in 10,000s as input. \n",
+    "\n",
+    "- Therefore, 35,000 people can be translated into an input to the model as `np.array([3.5])`\n",
+    "\n",
+    "- Similarly, 70,000 people can be translated into an input to the model as `np.array([7.])`\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {
+    "deletable": false,
+    "editable": false
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "For population = 35,000, we predict a profit of $34248.91\n",
+      "For population = 70,000, we predict a profit of $63254.67\n"
+     ]
+    }
+   ],
+   "source": [
+    "predict1 = 3.5 * w + b\n",
+    "print('For population = 35,000, we predict a profit of $%.2f' % (predict1*10000))\n",
+    "\n",
+    "predict2 = 7.0 * w + b\n",
+    "print('For population = 70,000, we predict a profit of $%.2f' % (predict2*10000))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Expected Output**:\n",
+    "<table>\n",
+    "  <tr>\n",
+    "    <td> <b> For population = 35,000, we predict a profit of<b></td>\n",
+    "    <td> $4519.77 </td> \n",
+    "  </tr>\n",
+    "  \n",
+    "  <tr>\n",
+    "    <td> <b> For population = 70,000, we predict a profit of<b></td>\n",
+    "    <td> $45342.45 </td> \n",
+    "  </tr>\n",
+    "</table>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Congratulations on completing this practice lab on linear regression! Next week, you will create models to solve a different type of problem: classification. See you there!**"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<details>\n",
+    "  <summary><font size=\"2\" color=\"darkgreen\"><b>Please click here if you want to experiment with any of the non-graded code.</b></font></summary>\n",
+    "    <p><i><b>Important Note: Please only do this when you've already passed the assignment to avoid problems with the autograder.</b></i>\n",
+    "    <ol>\n",
+    "        <li> On the notebook’s menu, click “View” > “Cell Toolbar” > “Edit Metadata”</li>\n",
+    "        <li> Hit the “Edit Metadata” button next to the code cell which you want to lock/unlock</li>\n",
+    "        <li> Set the attribute value for “editable” to:\n",
+    "            <ul>\n",
+    "                <li> “true” if you want to unlock it </li>\n",
+    "                <li> “false” if you want to lock it </li>\n",
+    "            </ul>\n",
+    "        </li>\n",
+    "        <li> On the notebook’s menu, click “View” > “Cell Toolbar” > “None” </li>\n",
+    "    </ol>\n",
+    "    <p> Here's a short demo of how to do the steps above: \n",
+    "        <br>\n",
+    "        <img src=\"https://lh3.google.com/u/0/d/14Xy_Mb17CZVgzVAgq7NCjMVBvSae3xO1\" align=\"center\" alt=\"unlock_cells.gif\">\n",
+    "</details>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
